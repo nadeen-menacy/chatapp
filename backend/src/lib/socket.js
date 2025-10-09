@@ -6,7 +6,13 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: ["http://localhost:5173"] },
+  cors: {
+    origin:
+      process.env.NODE_ENV === "production"
+        ? "https://chatapp-frontend-9bld.onrender.com" 
+        : "http://localhost:5173", 
+    methods: ["GET", "POST"],
+  },
 });
 
 const userSocketMap = {};
@@ -20,7 +26,6 @@ io.on("connection", (socket) => {
 
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
-  // 🔹 Handle friend request events
   socket.on("send_friend_request", (friend) => {
     const friendSocket = userSocketMap[friend._id];
     if (friendSocket) io.to(friendSocket).emit("receive_friend_request", friend);
@@ -31,7 +36,6 @@ io.on("connection", (socket) => {
     if (friendSocket) io.to(friendSocket).emit("friend_request_accepted", friend);
   });
 
-  // 🔹 NEW: Handle chat messages in real time
   socket.on("sendMessage", (message) => {
     const receiverSocketId = userSocketMap[message.receiverId];
     if (receiverSocketId) {
